@@ -1,0 +1,105 @@
+local clientData = require(game.ReplicatedStorage.ClientModules.Core.ClientData)
+
+local function getPlayerData()
+    return clientData.get_data()[tostring(game.Players.LocalPlayer)]
+end
+
+local function getAgePotions()
+    local potions = {}
+    for _, item in pairs(getPlayerData().inventory.food or {}) do
+        if item.kind == "pet_age_potion" then
+            table.insert(potions, item)
+        end
+    end
+    return potions
+end
+
+local function getPets(petName)
+    local pets = {}
+    for _, pet in pairs(getPlayerData().inventory.pets or {}) do
+        if pet.kind == petName and pet.properties.age < 6 then
+            table.insert(pets, pet)
+        end
+    end
+    return pets
+end
+
+-- Основные массивы
+local agePotions = getAgePotions()
+local pets = getPets(petName)
+
+-- Ограничения
+local MAX_CONCURRENT = 3 -- кол-во одновременных потоков (чтобы не грузить сервер)
+local DELAY_BETWEEN_BATCH = 0.5 -- пауза между партиями
+
+-- Обработка пета
+local function processPet(pet, potions)
+    if #potions < PerPotion then
+        warn("Недостаточно зелий для пета " .. pet.unique)
+        return
+    end
+
+    -- Берем зелья для этого пета
+    local selectedPotions = {}
+    for i = 1, PerPotion do
+        table.insert(selectedPotions, table.remove(potions, 1))
+    end
+
+    -- Экип
+    game.ReplicatedStorage.API["ToolAPI/Equip"]:InvokeServer(pet.unique, {use_sound_delay = true})
+    game.ReplicatedStorage.API["ToolAPI/Equip"]:InvokeServer(selectedPotions[1].unique, {use_sound_delay = true})
+
+    task.wait(0.15) -- безопасная задержка
+
+    -- Уникальные зелья
+    local potionUniques = {}
+    for i = 1, PerPotion - 1 do
+        table.insert(potionUniques, selectedPotions[i].unique)
+    end
+
+    -- Крафт
+    local ok, err = pcall(function()
+        game.ReplicatedStorage.API["PetObjectAPI/CreatePetObject"]:InvokeServer(
+            "__Enum_PetObjectCreatorType_2",
+            {
+                additional_consume_uniques = potionUniques,
+                pet_unique = pet.unique,
+                unique_id = selectedPotions[PerPotion].unique
+            }
+        )
+    end)
+    if not ok then warn("Ошибка крафта:", err) end
+
+    -- Скип анимации
+    local petModel
+    for _ = 1, 50 do
+        local found = workspace:WaitForChild("PetObjects"):FindFirstChildWhichIsA("Model")
+        if found then
+            petModel = found
+            break
+        end
+        task.wait(0.05)
+    end
+    if petModel then
+        game.ReplicatedStorage.API["PetAPI/ConsumeFoodObject"]:FireServer(petModel, pet.unique)
+    end
+end
+
+-- Основной цикл с батчингом
+while #pets > 0 and #agePotions >= PerPotion do
+    local activeThreads = {}
+
+    -- Запускаем батч (до MAX_CONCURRENT)
+    for i = 1, math.min(MAX_CONCURRENT, #pets) do
+        local pet = table.remove(pets, 1)
+        local thread = task.spawn(function()
+            processPet(pet, agePotions)
+        end)
+        table.insert(activeThreads, thread)
+    end
+
+    -- Ждем перед следующим батчем
+    task.wait(DELAY_BETWEEN_BATCH)
+end
+
+warn("Все петы прокачаны или зелья закончились!")
