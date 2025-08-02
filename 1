@@ -1,0 +1,107 @@
+getgenv().Config = {
+["StorageAccount"] = "artem12artem16",
+["PetName"] = "summerfest_2025_coconut_friend",
+["PerPotionPet"] = 10
+}
+
+local StorageAccount = getgenv().Config["StorageAccount"]
+local petName = getgenv().Config["PetName"]
+local PerPotion = getgenv().Config["PerPotionPet"]
+
+local clientData = require(game.ReplicatedStorage.ClientModules.Core.ClientData)
+
+-- Получение данных игрока
+local function getPlayerData()
+    return clientData.get_data()[tostring(game.Players.LocalPlayer)]
+end
+
+-- Сбор всех зелий
+local function getAgePotions()
+    local potions = {}
+    local playerData = getPlayerData()
+    for _, item in pairs(playerData.inventory.food or {}) do
+        if item.kind == "pet_age_potion" then
+            table.insert(potions, item)
+        end
+    end
+    return potions
+end
+
+-- Сбор всех петов, которых нужно прокачать
+local function getPets(petName)
+    local pets = {}
+    local playerData = getPlayerData()
+    for _, pet in pairs(playerData.inventory.pets or {}) do
+        if pet.kind == petName and pet.properties.age < 6 then
+            table.insert(pets, pet)
+        end
+    end
+    return pets
+end
+
+-- Основной код
+local agePotions = getAgePotions()
+local pets = getPets(petName)
+
+while true do
+    if #agePotions < PerPotion then
+        warn("No potion " .. #agePotions .. "/" .. PerPotion)
+        break
+    end
+    if #pets == 0 then
+        warn("No Need pets")
+        break
+    end
+
+    local selectedPet = table.remove(pets, 1) -- Берем первого пета
+    local selectedPotions = {}
+    for i = 1, PerPotion do
+        table.insert(selectedPotions, table.remove(agePotions, 1)) -- Берем нужное количество зелий
+    end
+
+    -- Экипируем
+    game.ReplicatedStorage.API["ToolAPI/Equip"]:InvokeServer(selectedPet.unique, {use_sound_delay = true})
+    game.ReplicatedStorage.API["ToolAPI/Equip"]:InvokeServer(selectedPotions[1].unique, {use_sound_delay = true})
+
+    task.wait(0.2)
+
+    -- Подготовка уникальных ID для крафта
+    local potionUniques = {}
+    for i = 1, PerPotion - 1 do
+        table.insert(potionUniques, selectedPotions[i].unique)
+    end
+
+    -- Крафт
+    local ok, err = pcall(function()
+        game.ReplicatedStorage.API["PetObjectAPI/CreatePetObject"]:InvokeServer(
+            "__Enum_PetObjectCreatorType_2",
+            {
+                additional_consume_uniques = potionUniques,
+                pet_unique = selectedPet.unique,
+                unique_id = selectedPotions[PerPotion].unique
+            }
+        )
+    end)
+    if not ok then
+        warn("Error:", err)
+    end
+
+    -- Скип анимации
+    local petModel
+    for _ = 1, 50 do
+        local found = workspace:WaitForChild("PetObjects"):FindFirstChildWhichIsA("Model")
+        if found then
+            petModel = found
+            break
+        end
+        task.wait(0.05)
+    end
+
+    if petModel then
+        game.ReplicatedStorage.API["PetAPI/ConsumeFoodObject"]:FireServer(petModel, selectedPet.unique)
+    else
+        warn("Error: pet model not found")
+    end
+
+    task.wait(0.15)
+end
