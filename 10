@@ -1,0 +1,185 @@
+-- Play Button
+
+task.wait(5)
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Rano194/Others/refs/heads/main/PlayButtnonNew"))()
+task.wait(5)
+
+StorageAccount = getgenv().Config["StorageAccount"]
+petName = getgenv().Config["PetName"]
+PerPotion = getgenv().Config["PerPotionPet"]
+
+local clientData = require(game.ReplicatedStorage.ClientModules.Core.ClientData)
+local playerData = clientData.get_data()[tostring(game.Players.LocalPlayer)]
+
+-- Getting Potion count
+local pet_age_potion = 0
+for _, item in pairs(playerData.inventory.food or {}) do
+    if item.kind == "pet_age_potion" then
+        pet_age_potion += 1
+    end
+end
+
+-- Getting need pets count
+local pets_count = 0
+for _, pet in pairs(playerData.inventory.pets or {}) do
+    if pet.kind == petName and pet.properties.age < 6 and not pet.properties.mega_neon then
+        pets_count += 1
+    end
+end
+
+local NeedPets = math.floor(pet_age_potion / PerPotion)
+local NeedPets = math.max(NeedPets - pets_count, 0)
+
+-- Console
+print("[INFO] Loading information | Farmer Account")
+print("-----------------------------------------")
+print("[INFO] Age-Potion: "..pet_age_potion)
+print("[INFO] Need pets: "..NeedPets)
+
+-- Dehash script
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Rano194/Others/refs/heads/main/Dehash"))()
+print("[INFO] loading dehash remote")
+
+-- Uprage pets
+
+getgenv().ReadyPets = false
+
+task.spawn(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Rano194/Test/refs/heads/main/9"))()
+end)
+
+-- Post request need pets
+local requestFunc = syn and syn.request or http_request or request
+
+if NeedPets ~= 0 then
+    local res = requestFunc({ Url = "https://farmertester.pythonanywhere.com/getpets?nick="..game.Players.LocalPlayer.Name.."&remove_count=999", Method = "GET" })
+    local data = game:GetService("HttpService"):JSONDecode(res.Body)
+
+    local res = requestFunc({ Url = "https://farmertester.pythonanywhere.com/getpets?nick="..game.Players.LocalPlayer.Name.."&add_count="..NeedPets, Method = "GET" })
+    local data = game:GetService("HttpService"):JSONDecode(res.Body)
+
+    -- Начинаем цикл получения петов
+    local time = NeedPets
+
+    while true do
+        task.wait(3)
+
+        if time <= 0 then
+            break
+        end
+
+        local args = {
+            game:GetService("Players"):WaitForChild(StorageAccount)
+        }
+        game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("TradeAPI/SendTradeRequest"):FireServer(unpack(args))
+
+        if game:GetService("Players").LocalPlayer.PlayerGui.TradeApp.Frame.Visible == true then
+            task.wait(1)
+            print("[INFO] Accept trade")
+            print("[INFO] Need pets: " .. time)
+            
+            local result = math.min(time, 18)
+
+            while true do
+                task.wait(0.5)
+                game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("TradeAPI/AcceptNegotiation"):FireServer()
+                game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("TradeAPI/ConfirmTrade"):FireServer()
+
+                if game:GetService("Players").LocalPlayer.PlayerGui.TradeApp.Frame.Visible == false then
+                    game.Players.LocalPlayer.PlayerGui.DialogApp.Dialog.Visible = false
+                    print("[INFO] Finish trade | Claimed Pets: " .. result)
+                    time = time - result
+                    task.wait(5)
+                    break
+                end
+            end
+        end
+    end
+    print("[INFO] Done claimed pets: "..NeedPets)
+end
+
+-- Anti Afk
+task.spawn(function()
+    local vu = game:GetService("VirtualUser")
+    while true do
+        task.wait(300) -- каждые 5 минут
+        vu:CaptureController()
+        vu:ClickButton2(Vector2.new()) -- имитация клика
+        workspace.CurrentCamera.CFrame = workspace.CurrentCamera.CFrame * CFrame.Angles(0, math.rad(math.random(-2,2)), 0)
+        print("[ANTI-AFK] Сброс AFK вручную")
+    end
+end)
+
+-- Auto use potion
+
+while getgenv().ReadyPets == false do
+    task.wait(5)
+    print("Check")
+end
+print("Success")
+
+-- Функция получения петов
+
+function GetFilteredPets(petName, maxCount)
+    local playerData = clientData.get_data()[tostring(game.Players.LocalPlayer)]
+    local filteredPets = {}
+
+    for _, pet in pairs(playerData.inventory.pets or {}) do
+        if #filteredPets >= maxCount then
+            break
+        end
+
+        if pet.kind == petName then
+            table.insert(filteredPets, pet)
+        end
+    end
+
+    return filteredPets
+end
+
+-- Отправляем петов обратно
+local canceled = false
+
+while true do
+    task.wait(3)
+    local playerData = clientData.get_data()[tostring(game.Players.LocalPlayer)]
+    local pets_count = 0
+    for _, pet in pairs(playerData.inventory.pets or {}) do
+        if pet.kind == petName then
+            pets_count += 1
+        end
+    end
+    if pets_count == 0 then
+        break
+    else
+        local args = {
+	    game:GetService("Players"):WaitForChild(StorageAccount)
+        }
+        game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("TradeAPI/SendTradeRequest"):FireServer(unpack(args))
+    end
+    if game:GetService("Players").LocalPlayer.PlayerGui.TradeApp.Frame.Visible == true then
+        task.wait(1)
+        print("[INFO] Accept trade")
+        local pets = GetFilteredPets(petName, 18)
+        for i, pet in ipairs(pets) do
+            if #pets < 18 then
+                canceled = true
+            end
+            local args = {pet.unique}
+            game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("TradeAPI/AddItemToOffer"):FireServer(unpack(args))
+        end
+        while true do
+            task.wait(0.5)
+            game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("TradeAPI/AcceptNegotiation"):FireServer()
+            game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("TradeAPI/ConfirmTrade"):FireServer()
+            if game:GetService("Players").LocalPlayer.PlayerGui.TradeApp.Frame.Visible == false then
+                task.wait(3)
+                print("[INFO] Finish trade")
+                break
+            end
+        end
+        if canceled == true then
+            break
+        end
+    end
+end
