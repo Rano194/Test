@@ -1,0 +1,96 @@
+local StorageAccount = getgenv().Config["StorageAccount"]
+local petName = getgenv().Config["PetName"]
+local PerPotion = getgenv().Config["PerPotionPet"]
+
+local clientData = require(game.ReplicatedStorage.ClientModules.Core.ClientData)
+
+-- Функции получения данных
+local function getPlayerData()
+    return clientData.get_data()[tostring(game.Players.LocalPlayer)]
+end
+
+local function getAgePotions()
+    local potions = {}
+    for _, item in pairs(getPlayerData().inventory.food or {}) do
+        if item.kind == "pet_age_potion" then
+            table.insert(potions, item)
+        end
+    end
+    return potions
+end
+
+local function getPets(petName)
+    local pets = {}
+    for _, pet in pairs(getPlayerData().inventory.pets or {}) do
+        if pet.kind == petName and pet.properties.age < 6 then
+            table.insert(pets, pet)
+        end
+    end
+    return pets
+end
+
+-- Подгружаем данные один раз
+local agePotions = getAgePotions()
+local pets = getPets(petName)
+
+while true do
+    if #agePotions < PerPotion then
+        warn("Недостаточно зелий: " .. #agePotions .. "/" .. PerPotion)
+        break
+    end
+    if #pets == 0 then
+        warn("Нет подходящих петов")
+        break
+    end
+
+    local selectedPet = table.remove(pets, 1) -- Берем первого пета
+    local selectedPotions = {}
+    for i = 1, PerPotion do
+        table.insert(selectedPotions, table.remove(agePotions, 1))
+    end
+
+    -- Экипируем пета и зелье
+    game.ReplicatedStorage.API["ToolAPI/Equip"]:InvokeServer(selectedPet.unique, {use_sound_delay = true})
+    game.ReplicatedStorage.API["ToolAPI/Equip"]:InvokeServer(selectedPotions[1].unique, {use_sound_delay = true})
+    task.wait(0.2)
+
+    -- Готовим зелья для крафта
+    local potionUniques = {}
+    for i = 1, PerPotion - 1 do
+        table.insert(potionUniques, selectedPotions[i].unique)
+    end
+
+    -- Крафт
+    local ok, err = pcall(function()
+        game.ReplicatedStorage.API["PetObjectAPI/CreatePetObject"]:InvokeServer(
+            "__Enum_PetObjectCreatorType_2",
+            {
+                additional_consume_uniques = potionUniques,
+                pet_unique = selectedPet.unique,
+                unique_id = selectedPotions[PerPotion].unique
+            }
+        )
+    end)
+    if not ok then warn("Ошибка крафта:", err) end
+
+    -- Скип анимации
+    local petModel
+    for _ = 1, 50 do
+        local found = workspace:WaitForChild("PetObjects"):FindFirstChildWhichIsA("Model")
+        if found then
+            petModel = found
+            break
+        end
+        task.wait(0.05)
+    end
+
+    if petModel then
+        game.ReplicatedStorage.API["PetAPI/ConsumeFoodObject"]:FireServer(petModel, selectedPet.unique)
+    else
+        warn("Ошибка: не найден модель пета")
+    end
+
+    task.wait(0.2) -- Минимальная безопасная задержка
+end
+
+warn("✅ Все петы прокачаны или закончились зелья.")
