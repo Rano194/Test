@@ -1,0 +1,297 @@
+Main = Instance.new("ScreenGui")
+Main.Name = "Main"
+Main.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+Main.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+Main.ResetOnSpawn = false
+
+Main2 = Instance.new("Frame")
+Main2.Name = "Main"
+Main2.Position = UDim2.new(0.522468, 0, 0.540657, 0)
+Main2.Size = UDim2.new(1.9, 0, 1.5, 0)
+Main2.BackgroundColor3 = Color3.new(0.0509804, 0.0509804, 0.0509804)
+Main2.BorderSizePixel = 0
+Main2.BorderColor3 = Color3.new(0, 0, 0)
+Main2.ZIndex = 999
+Main2.AnchorPoint = Vector2.new(0.5, 0.5)
+Main2.Parent = Main
+
+Bruh = Instance.new("Frame")
+Bruh.Name = "Bruh"
+Bruh.Position = UDim2.new(0.500004, 0, 0.593236, 0)
+Bruh.Size = UDim2.new(0.253962, 0, 0.00409928, 0)
+Bruh.BackgroundColor3 = Color3.new(0.541176, 0.0117647, 0.568627)
+Bruh.BorderSizePixel = 0
+Bruh.BorderColor3 = Color3.new(1, 0.258824, 0.258824)
+Bruh.ZIndex = 999
+Bruh.AnchorPoint = Vector2.new(0.5, 0.5)
+Bruh.Parent = Main2
+
+local UICorner = Instance.new("UICorner")
+UICorner.Name = "UICorner"
+UICorner.CornerRadius = UDim.new(0.4, 0)
+UICorner.Parent = Bruh
+
+-- Getting nick
+local nickname = game.Players.LocalPlayer.Name
+
+Nick = Instance.new("TextLabel")
+Nick.Name = "Nick"
+Nick.Position = UDim2.new(0.500004, 0, 0.375564, 0)
+Nick.Size = UDim2.new(0.0967622, 0, 0.0475519, 0)
+Nick.BackgroundColor3 = Color3.new(1, 1, 1)
+Nick.BackgroundTransparency = 1
+Nick.BorderSizePixel = 0
+Nick.BorderColor3 = Color3.new(0, 0, 0)
+Nick.ZIndex = 999
+Nick.AnchorPoint = Vector2.new(0.5, 0.5)
+Nick.Text = nickname
+Nick.TextColor3 = Color3.new(1, 1, 1)
+Nick.TextSize = 51
+Nick.FontFace = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+Nick.TextScaled = true
+Nick.TextWrapped = true
+Nick.Parent = Main2
+
+Bruh2 = Instance.new("Frame")
+Bruh2.Name = "Bruh"
+Bruh2.Position = UDim2.new(0.50012, 0, 0.402209, 0)
+Bruh2.Size = UDim2.new(0.123743, 0, 0.0040993, 0)
+Bruh2.BackgroundColor3 = Color3.new(0.541176, 0.0117647, 0.568627)
+Bruh2.BorderSizePixel = 0
+Bruh2.BorderColor3 = Color3.new(1, 0.258824, 0.258824)
+Bruh2.ZIndex = 999
+Bruh2.AnchorPoint = Vector2.new(0.5, 0.5)
+Bruh2.Parent = Main2
+
+UICorner2 = Instance.new("UICorner")
+UICorner2.Name = "UICorner"
+UICorner2.CornerRadius = UDim.new(0.4, 0)
+UICorner2.Parent = Bruh2
+
+Coin = Instance.new("TextLabel")
+Coin.Name = "Coin"
+Coin.Position = UDim2.new(0.50012, 0, 0.426805, 0)
+Coin.Size = UDim2.new(0.123743, 0, 0.0344341, 0)
+Coin.BackgroundColor3 = Color3.new(1, 1, 1)
+Coin.BackgroundTransparency = 1
+Coin.BorderSizePixel = 0
+Coin.BorderColor3 = Color3.new(0, 0, 0)
+Coin.ZIndex = 999
+Coin.AnchorPoint = Vector2.new(0.5, 0.5)
+Coin.Text = "Coin:  ??? ( + ?? )"
+Coin.TextColor3 = Color3.new(1, 1, 1)
+Coin.TextSize = 38
+Coin.FontFace = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+Coin.TextScaled = true
+Coin.TextWrapped = true
+Coin.Parent = Main2
+
+Level = Instance.new("TextLabel")
+Level.Name = "Level"
+Level.Position = UDim2.new(0.500004, 0, 0.470258, 0)
+Level.Size = UDim2.new(0.0967622, 0, 0.0344341, 0)
+Level.BackgroundColor3 = Color3.new(1, 1, 1)
+Level.BackgroundTransparency = 1
+Level.BorderSizePixel = 0
+Level.BorderColor3 = Color3.new(0, 0, 0)
+Level.ZIndex = 999
+Level.AnchorPoint = Vector2.new(0.5, 0.5)
+Level.Text = "Level: ???"
+Level.TextColor3 = Color3.new(1, 1, 1)
+Level.TextSize = 38
+Level.FontFace = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+Level.TextScaled = true
+Level.TextWrapped = true
+Level.Parent = Main2
+
+PassLevel = Instance.new("TextLabel")
+PassLevel.Name = "PassLevel"
+PassLevel.Position = UDim2.new(0.500004, 0, 0.51535, 0)
+PassLevel.Size = UDim2.new(0.0967622, 0, 0.0344341, 0)
+PassLevel.BackgroundColor3 = Color3.new(1, 1, 1)
+PassLevel.BackgroundTransparency = 1
+PassLevel.BorderSizePixel = 0
+PassLevel.BorderColor3 = Color3.new(0, 0, 0)
+PassLevel.ZIndex = 999
+PassLevel.AnchorPoint = Vector2.new(0.5, 0.5)
+PassLevel.Text = "Pass-Level: ???"
+PassLevel.TextColor3 = Color3.new(1, 1, 1)
+PassLevel.TextSize = 38
+PassLevel.FontFace = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+PassLevel.TextScaled = true
+PassLevel.TextWrapped = true
+PassLevel.Parent = Main2
+
+Discord = Instance.new("TextLabel")
+Discord.Name = "Discord"
+Discord.Position = UDim2.new(0.392799, 0, 0.57356, 0)
+Discord.Size = UDim2.new(0.0396323, 0, 0.0245958, 0)
+Discord.BackgroundColor3 = Color3.new(0.117647, 0.117647, 0.117647)
+Discord.BackgroundTransparency = 1
+Discord.BorderSizePixel = 0
+Discord.BorderColor3 = Color3.new(0, 0, 0)
+Discord.ZIndex = 999
+Discord.AnchorPoint = Vector2.new(0.5, 0.5)
+Discord.Text = ".gg/CXAFcrr8"
+Discord.TextColor3 = Color3.new(0.294118, 0.294118, 0.294118)
+Discord.TextSize = 29
+Discord.FontFace = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+Discord.TextScaled = true
+Discord.TextWrapped = true
+Discord.Parent = Main2
+
+Time = Instance.new("TextLabel")
+Time.Name = "Time"
+Time.Position = UDim2.new(0.500004, 0, 0.557983, 0)
+Time.Size = UDim2.new(0.0967622, 0, 0.0344341, 0)
+Time.BackgroundColor3 = Color3.new(1, 1, 1)
+Time.BackgroundTransparency = 1
+Time.BorderSizePixel = 0
+Time.BorderColor3 = Color3.new(0, 0, 0)
+Time.ZIndex = 999
+Time.AnchorPoint = Vector2.new(0.5, 0.5)
+Time.Text = "Time: ???"
+Time.TextColor3 = Color3.new(1, 1, 1)
+Time.TextSize = 38
+Time.FontFace = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+Time.TextScaled = true
+Time.TextWrapped = true
+Time.Parent = Main2
+
+task.spawn(function()
+    local SecondsPassed = 0
+
+    while true do
+        task.wait(1)
+        SecondsPassed += 1
+
+        local hours = math.floor(SecondsPassed / 3600)
+        local minutes = math.floor((SecondsPassed % 3600) / 60)
+        local seconds = SecondsPassed % 60
+
+        local formattedTime = string.format("%d:%02d:%02d", hours, minutes, seconds)
+        Time.Text = formattedTime
+    end
+end)
+
+Status = Instance.new("TextLabel")
+Status.Name = "Status"
+Status.Position = UDim2.new(0.499984, 0, 0.625211, 0)
+Status.Size = UDim2.new(0.254002, 0, 0.0442724, 0)
+Status.BackgroundColor3 = Color3.new(1, 1, 1)
+Status.BackgroundTransparency = 1
+Status.BorderSizePixel = 0
+Status.BorderColor3 = Color3.new(0, 0, 0)
+Status.ZIndex = 999
+Status.AnchorPoint = Vector2.new(0.5, 0.5)
+Status.Text = "Status: Collecting coin (1 / 40)"
+Status.TextColor3 = Color3.new(1, 1, 1)
+Status.TextSize = 38
+Status.FontFace = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+Status.TextScaled = true
+Status.TextWrapped = true
+Status.Parent = Main2
+
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if Autofarm_Enable == false then
+            local SecondsPassed = game:GetService("ReplicatedStorage").Remotes.Extras.GetTimer:InvokeServer()
+            if SecondsPassed > 1 then
+                local minutes = math.floor(SecondsPassed / 60)
+                local seconds = SecondsPassed % 60
+                local formattedTime = string.format("%02d:%02d", minutes, seconds)
+                Status.Text = "Status: Wait end game " .. formattedTime
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    local data = game:GetService("ReplicatedStorage").Remotes.Extras.GetData2:InvokeServer()
+    PassLevel.Text = "Pass-Level: " .. data.Summer2025.CurrentTier
+end)
+
+task.spawn(function()
+    while true do
+        local args = {nickname}
+        local datalevel = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Misc"):WaitForChild("GetPlayerProfile"):InvokeServer(unpack(args))
+        local level =  datalevel.Level
+        Level.Text = "Level: " .. level
+        task.wait(120)
+    end
+end)
+
+task.spawn(function()
+    while true do
+        local player = game.Players.LocalPlayer
+        local playerGui = player:WaitForChild("PlayerGui")
+        local keepGuiName = "Main"
+
+        for _, gui in pairs(playerGui:GetChildren()) do
+            if gui:IsA("ScreenGui") and gui.Name ~= keepGuiName then
+                gui.Enabled = false
+                gui.ResetOnSpawn = false
+            end
+        end
+        task.wait(60)
+    end
+end)
+
+game:GetService("RunService"):Set3dRenderingEnabled(false)
+
+local Lighting = game:GetService("Lighting")
+
+for _, v in pairs(Lighting:GetChildren()) do
+	if v:IsA("PostEffect") or v:IsA("BloomEffect") or v:IsA("ColorCorrectionEffect") then
+		v.Enabled = false
+	end
+end
+
+Lighting.GlobalShadows = false
+Lighting.FogEnd = 1000000
+Lighting.Brightness = 0
+
+local humanoid = game.Players.LocalPlayer.Character:FindFirstChild("Humanoid")
+if humanoid then
+	humanoid:LoadAnimation(Instance.new("Animation")):Stop()
+end
+
+for _, v in pairs(workspace:GetDescendants()) do
+	if v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Beam") or v:IsA("Trail") then
+		v:Destroy()
+	end
+end
+
+for _, player in ipairs(game.Players:GetPlayers()) do
+	local character = player.Character
+	if character then
+		for _, v in pairs(character:GetDescendants()) do
+			if v:IsA("BasePart") or v:IsA("Decal") then
+				v.Transparency = 1
+			end
+		end
+	end
+end
+
+local LocalPlayer = game.Players.LocalPlayer
+
+task.spawn(function()
+    while true do
+        task.wait(1)
+        for _, player in ipairs(game.Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                local character = player.Character
+                if character then
+                    for _, v in pairs(character:GetDescendants()) do
+                        if v:IsA("BasePart") or v:IsA("Decal") then
+                            pcall(function()
+                                v:Destroy()
+                            end)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
