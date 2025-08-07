@@ -1,0 +1,118 @@
+-- MM2 FARM
+
+print("Info | Loading script")
+
+Autofarm_Enable = false
+
+-- EVENT
+
+-- Event Start Round
+RoundStartEvent = game.ReplicatedStorage.Remotes.Gameplay.RoundStart
+RoundStartEvent.OnClientEvent:Connect(function()
+    print("Start event round")
+	Autofarm_Enable = true
+end)
+
+-- Event End Round
+RoundEndEvent = game.ReplicatedStorage.Remotes.Gameplay.RoundEndFade
+RoundEndEvent.OnClientEvent:Connect(function()
+    print("End event round")
+	Autofarm_Enable = false
+end)
+
+-- Event Collected Coin
+CoinCollectedEvent = game.ReplicatedStorage.Remotes.Gameplay.CoinCollected
+CoinCollectedEvent.OnClientEvent:Connect(function(cointype, current, max)
+    print(current, max)
+	if tonumber(current) == tonumber(max) then
+		Autofarm_Enable = false
+        Player.Character.Humanoid.Health = 0
+	end
+end)
+
+-- END EVENT
+
+local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+
+local Character = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+
+Players.LocalPlayer.CharacterAdded:Connect(function(char)
+    Character = char
+    Humanoid = char:WaitForChild("Humanoid")
+end)
+
+local attemptedCoins = {}
+local range, coin, tween
+
+-- Getting container coin
+local function GetCoinContainer()
+    for _, v in Workspace:GetChildren() do
+        local CoinContainer = v:FindFirstChild("CoinContainer")
+        if CoinContainer then
+            return CoinContainer
+        end
+    end
+end
+
+-- Getting coin CFrame
+local function GetCoin()
+    local CoinContainer = GetCoinContainer()
+    if CoinContainer then
+        local nearestRange, bestCoin = math.huge
+        for _, v in CoinContainer:GetChildren() do
+            if v:FindFirstChild("TouchInterest") and not attemptedCoins[v] then
+                local Magnitude = (Character:GetPivot().Position - v.Position).Magnitude
+                if Magnitude < nearestRange then
+                    nearestRange, bestCoin = Magnitude, v
+                end
+            end
+        end
+        return nearestRange, bestCoin
+    end
+end
+
+-- Delete coin
+local function SetupDescendantRemoving()
+    Workspace.DescendantRemoving:Connect(function(descendant)
+        if descendant == coin or descendant.Parent == coin then
+            if tween then
+                tween:Cancel()
+                tween = nil
+            end
+            attemptedCoins[coin] = nil  
+            coin = nil
+        end
+    end)
+end
+
+-- Autofarm
+local function Tick()
+    if Character then
+        range, coin = GetCoin()
+        if coin then
+            attemptedCoins[coin] = true 
+            tween = TweenService:Create(
+                Character.PrimaryPart,
+                TweenInfo.new(range / Humanoid.WalkSpeed),
+                {CFrame = coin.CFrame}
+            )
+            tween:Play()
+            tween.Completed:Wait()
+            tween = nil
+        else
+            attemptedCoins = {}
+        end
+    end
+end
+
+-- Run
+SetupDescendantRemoving()
+
+while task.wait() do
+    if Autofarm_Enable == true then
+        Tick()
+    end
+end
