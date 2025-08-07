@@ -1,0 +1,68 @@
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+local teleportEnabled = true
+local isTeleporting = false
+
+-- Получить контейнер с конфетами (монетами)
+local function findCoinContainer()
+    for _, child in pairs(workspace:GetChildren()) do
+        local coinContainer = child:FindFirstChild("CoinContainer")
+        if coinContainer then
+            return coinContainer
+        end
+    end
+    return nil
+end
+
+-- Найти ближайшую монету в радиусе
+local function findNearestCoin(radius)
+    local coinContainer = findCoinContainer()
+    if not coinContainer then return nil end
+
+    local nearestCoin = nil
+    local nearestDistance = radius
+
+    for _, coin in pairs(coinContainer:GetChildren()) do
+        local distance = (coin.Position - humanoidRootPart.Position).Magnitude
+        if distance < nearestDistance then
+            nearestCoin = coin
+            nearestDistance = distance
+        end
+    end
+
+    return nearestCoin
+end
+
+-- Мягкий телепорт к монете
+local function tweenToCoin(coin)
+    local tweenInfo = TweenInfo.new(0.25, Enum.EasingStyle.Linear)
+    local tween = TweenService:Create(humanoidRootPart, tweenInfo, {CFrame = coin.CFrame})
+    tween:Play()
+    return tween
+end
+
+-- Перезапись персонажа после смерти
+player.CharacterAdded:Connect(function(char)
+    character = char
+    humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+end)
+
+-- Главный цикл
+RunService.Heartbeat:Connect(function()
+    if not teleportEnabled or isTeleporting then return end
+    isTeleporting = true
+
+    local coin = findNearestCoin(500)
+    if coin then
+        local tween = tweenToCoin(coin)
+        tween.Completed:Wait()
+    end
+
+    isTeleporting = false
+end)
