@@ -1,0 +1,213 @@
+-- Code
+
+task.wait(20)
+
+local StorageAccount = getgenv().Config["StorageAccount"]
+local petName = getgenv().Config["PetName"]
+
+-- Play Button
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Rano194/Others/refs/heads/main/PlayButtnonNew"))()
+
+-- Dehash script
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Rano194/Others/refs/heads/main/Dehash"))()
+print("[INFO] loading dehash remote")
+
+-- JEWEL CRAFTING
+
+task.wait(5)
+
+local clientData = require(game.ReplicatedStorage.ClientModules.Core.ClientData)
+local playerData = clientData.get_data()[tostring(game.Players.LocalPlayer)]
+
+function GetPet(petName)
+    local playerData = clientData.get_data()[tostring(game.Players.LocalPlayer)]
+    for _, pet in pairs(playerData.inventory.pets or {}) do
+        if pet.kind == petName then
+            return pet
+        end
+    end
+    return nil
+end
+
+-- Anti Afk
+task.spawn(function()
+    local vu = game:GetService("VirtualUser")
+    while true do
+        task.wait(300) -- каждые 5 минут
+        vu:CaptureController()
+        vu:ClickButton2(Vector2.new()) -- имитация клика
+        workspace.CurrentCamera.CFrame = workspace.CurrentCamera.CFrame * CFrame.Angles(0, math.rad(math.random(-2,2)), 0)
+        print("[ANTI-AFK] Сброс AFK вручную")
+    end
+end)
+
+-- Teleport
+
+task.wait(5)
+local Players = game:GetService("Players")
+
+-- Script
+
+function GetFilteredPets(petNames, maxCount)
+    local playerData = clientData.get_data()[tostring(game.Players.LocalPlayer)]
+    local filteredPets = {}
+
+    for _, pet in pairs(playerData.inventory.pets or {}) do
+        for _, name in ipairs(petNames) do
+            if pet.kind == name then
+                table.insert(filteredPets, pet)
+                if #filteredPets >= maxCount then
+                    return filteredPets
+                end
+            end
+        end
+    end
+
+    return filteredPets
+end
+
+-- Авто юзаем зелья
+
+
+local RS = game:GetService("ReplicatedStorage")
+local clientData = require(RS.ClientModules.Core.ClientData)
+local successCount = 0
+
+local PerPotion = 10
+
+while true do
+    local playerData = clientData.get_data()[tostring(game.Players.LocalPlayer)]
+
+    local agePotions = {}
+    for _, item in pairs(playerData.inventory.food or {}) do
+        if item.kind == "pet_age_potion" then
+            table.insert(agePotions, item)
+            if #agePotions >= PerPotion then break end
+        end
+    end
+    if #agePotions < PerPotion then
+        warn("❌ Недостаточно age potion: " .. #agePotions .. "/" .. PerPotion)
+        break
+    end
+
+    local selectedPet
+    for _, pet in pairs(playerData.inventory.pets or {}) do
+        for _, name in ipairs(getgenv().Config.PetAgeUp) do
+            if pet.kind == name and pet.properties.age < 6 then
+                selectedPet = pet
+                break
+            end
+        end
+        if selectedPet then break end
+    end
+
+    if not selectedPet then
+        warn("❌ Нет подходящего пета из списка")
+        break
+    end
+
+    RS.API["ToolAPI/Equip"]:InvokeServer(selectedPet.unique, {use_sound_delay = true})
+    RS.API["ToolAPI/Equip"]:InvokeServer(agePotions[1].unique, {use_sound_delay = true})
+
+    task.wait(0.3)
+
+    local potionUniques = {}
+    for i = 1, PerPotion - 1 do
+        table.insert(potionUniques, agePotions[i].unique)
+    end
+
+    local ok, err = pcall(function()
+        RS.API["PetObjectAPI/CreatePetObject"]:InvokeServer(
+            "__Enum_PetObjectCreatorType_2",
+            {
+                additional_consume_uniques = potionUniques,
+                pet_unique = selectedPet.unique,
+                unique_id = agePotions[PerPotion].unique
+            }
+        )
+    end)
+    if not ok then
+        warn("❌ Ошибка создания пета:", err)
+        continue -- не break, а продолжаем цикл
+    end
+
+    -- Ожидание модели пета
+    local petModel
+    for _ = 1, 30 do
+        local found = workspace:WaitForChild("PetObjects"):FindFirstChildWhichIsA("Model")
+        if found then
+            petModel = found
+            break
+        end
+        task.wait(0.1)
+    end
+
+    if petModel then
+        RS.API["PetAPI/ConsumeFoodObject"]:FireServer(petModel, selectedPet.unique)
+    else
+        warn("❗ Модель пета не найдена для кормления")
+    end
+
+    successCount += 1
+    print("Улучшено: " .. successCount)
+    task.wait(0.2)
+end
+
+-- Отправляем петов обратно
+local canceled = false
+
+while true do
+    task.wait(3)
+    local count = 0
+    local playerData = clientData.get_data()[tostring(game.Players.LocalPlayer)]
+
+    -- Считаем общее количество всех указанных петов
+    for _, pet in pairs(playerData.inventory.pets or {}) do
+        for _, name in ipairs(getgenv().Config.PetNames) do
+            if pet.kind == name then
+                count += 1
+            end
+        end
+    end
+
+    if count == 0 then
+        break
+    end
+
+    -- Отправляем трейд
+    local args = {game:GetService("Players"):WaitForChild(getgenv().Config.StorageAccount)}
+    game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("TradeAPI/SendTradeRequest"):FireServer(unpack(args))
+
+    if game:GetService("Players").LocalPlayer.PlayerGui.TradeApp.Frame.Visible == true then
+        task.wait(1)
+        print("[INFO] Accept trade")
+
+        local pets = GetFilteredPets(getgenv().Config.PetNames, 18)
+        local canceled = false
+
+        for i, pet in ipairs(pets) do
+            if #pets < 18 then
+                canceled = true
+            end
+            local args = {pet.unique}
+            game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("TradeAPI/AddItemToOffer"):FireServer(unpack(args))
+        end
+
+        -- Подтверждаем трейд
+        while true do
+            task.wait(0.5)
+            game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("TradeAPI/AcceptNegotiation"):FireServer()
+            game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("TradeAPI/ConfirmTrade"):FireServer()
+            if game:GetService("Players").LocalPlayer.PlayerGui.TradeApp.Frame.Visible == false then
+                task.wait(3)
+                print("[INFO] Finish trade")
+                break
+            end
+        end
+
+        if canceled == true then
+            break
+        end
+    end
+end
