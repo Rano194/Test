@@ -1,0 +1,150 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+
+local clientData = require(ReplicatedStorage.ClientModules.Core.ClientData)
+
+local API = ReplicatedStorage:WaitForChild("API")
+local ToolAPI_Equip = API:WaitForChild("ToolAPI/Equip")
+local PetObject_Create = API:WaitForChild("PetObjectAPI/CreatePetObject")
+local PetAPI_Consume = API:WaitForChild("PetAPI/ConsumeFoodObject")
+
+local PetObjects = workspace:WaitForChild("PetObjects")
+
+local function playerInv()
+    local pd = clientData.get_data()[tostring(LocalPlayer)]
+    return (pd and pd.inventory) or {}
+end
+
+local function getAgePotions(inv)
+    local pots = {}
+    for _, item in pairs(inv.food or {}) do
+        if item.kind == "pet_age_potion" then
+            table.insert(pots, item)
+        end
+    end
+    return pots
+end
+
+local function getEligiblePets(inv, wantedNames)
+    local plain, neon = {}, {}
+    for _, target in ipairs(wantedNames) do
+        for _, pet in pairs(inv.pets or {}) do
+            local props = pet.properties or {}
+            if pet.kind == target and not props.mega_neon and props.age < 6 then
+                if not props.neon then
+                    table.insert(plain, pet)
+                else
+                    table.insert(neon, pet)
+                end
+            end
+        end
+        if #plain > 0 then return plain end
+        if #neon  > 0 then return neon  end
+    end
+    return {}
+end
+
+local function waitPetObjectByPotionUnique(mainPotionUnique, timeout)
+    timeout = timeout or 2
+    local got
+    local conn
+    local t0 = os.clock()
+
+    conn = PetObjects.ChildAdded:Connect(function(child)
+        local ok, has = pcall(function()
+            if child:GetAttribute("unique_id") == mainPotionUnique then return true end
+            local tag = child:FindFirstChild("unique_id")
+            if tag and tag:IsA("StringValue") and tag.Value == mainPotionUnique then return true end
+            return false
+        end)
+        if ok and has then
+            got = child
+        end
+    end)
+
+    while (os.clock() - t0) < timeout and not got do
+        task.wait(0.03)
+    end
+
+    if conn then conn:Disconnect() end
+    return got
+end
+
+local function feedPetFast(pet, potions, maxPerRun)
+    local props = pet.properties or {}
+    local need = math.clamp(6 - (props.age or 0), 0, maxPerRun)
+    if need == 0 then return true end
+    if #potions < need then return false, "not_enough_potions" end
+
+    local selected = {}
+    for i = 1, need do
+        table.insert(selected, potions[i])
+    end
+    local mainPotion = selected[#selected]
+    local additional = {}
+    for i = 1, #selected - 1 do
+        table.insert(additional, selected[i].unique)
+    end
+
+    local createdModel
+    local okInvoke, retOrErr = pcall(function()
+        return PetObject_Create:InvokeServer(
+            "__Enum_PetObjectCreatorType_2",
+            {
+                additional_consume_uniques = additional,
+                pet_unique = pet.unique,
+                unique_id = mainPotion.unique
+            }
+        )
+    end)
+    if okInvoke and typeof(retOrErr) == "Instance" then
+        createdModel = retOrErr
+    end
+    if not createdModel then
+        createdModel = waitPetObjectByPotionUnique(mainPotion.unique, 1.2)
+    end
+
+    if not createdModel then
+        return false, "pet_object_not_spawned"
+    end
+
+    -- Одно событие Consume — сервер сам разберётся с additional_consume_uniques
+    local okConsume = pcall(function()
+        PetAPI_Consume:FireServer(createdModel, pet.unique)
+    end)
+
+    -- Сдвигаем массив зелий локально, чтобы не пересчитывать инвентарь
+    for _ = 1, need do
+        table.remove(potions, 1)
+    end
+
+    return okConsume ~= false
+end
+
+-- ===== Основной цикл =====
+while true do
+    local inv = playerInv()
+    local agePotions = getAgePotions(inv)
+    if #agePotions < 1 then break end
+
+    local pets = getEligiblePets(inv, petName)
+    if #pets == 0 then break end
+
+    -- Берём первого подходящего
+    local pet = table.remove(pets, 1)
+
+    -- Кормим только столько, сколько нужно до возраста 6, и максимум PerPotion за итерацию
+    local ok, err = feedPetFast(pet, agePotions, PerPotion)
+    if not ok then
+        -- Если не хватило зелий или объект не заспавнился — просто выйдем и обновим снапшот на следующей итерации
+        if err == "not_enough_potions" then break end
+        -- маленький бэкофф, чтобы не крутить впустую
+        task.wait(0.1)
+    end
+
+    -- Короткая пауза, чтобы сервер применил изменения (без тяжёлого опроса возраста)
+    task.wait(0.05)
+end
+
+Complete = true
