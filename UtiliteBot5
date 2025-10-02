@@ -1,0 +1,339 @@
+urlwebsite = "http://91.214.78.166:5000"
+apilogin = getgenv().Config["Api-login"]
+StorageAccount = getgenv().Config["StorageAccount"]
+
+petByName = getgenv().Config["PetName"]
+AgePets = getgenv().Config["AgePets"]
+PerPotion = getgenv().Config["PerPotionPet"]
+AutoFuse = getgenv().Config["AutoFuse"]
+
+TradeClassic = getgenv().Config["TradeClassic"]
+
+do -- Gui
+    local Main = Instance.new("ScreenGui")
+    Main.Name = "Main"
+    Main.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    Main.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+    local FrameMain = Instance.new("Frame")
+    FrameMain.Name = "FrameMain"
+    FrameMain.Position = UDim2.new(0.517283, 0, 0.837567, 0)
+    FrameMain.Size = UDim2.new(0.553232, 0, 0.196838, 0)
+    FrameMain.BackgroundColor3 = Color3.new(0.0627451, 0.0627451, 0.0627451)
+    FrameMain.BorderSizePixel = 0
+    FrameMain.BorderColor3 = Color3.new(0, 0, 0)
+    FrameMain.AnchorPoint = Vector2.new(0.5, 0.5)
+    FrameMain.Parent = Main
+
+    local UICorner = Instance.new("UICorner")
+    UICorner.Name = "UICorner"
+    UICorner.CornerRadius = UDim.new(0.1, 0)
+    UICorner.Parent = FrameMain
+
+    local Status = Instance.new("TextLabel")
+    Status.Name = "Status"
+    Status.Position = UDim2.new(0.135036, 0, 0, 0)
+    Status.Size = UDim2.new(0.729928, 0, 1, 0)
+    Status.BackgroundColor3 = Color3.new(1, 1, 1)
+    Status.BackgroundTransparency = 1
+    Status.BorderSizePixel = 0
+    Status.BorderColor3 = Color3.new(0, 0, 0)
+    Status.Transparency = 1
+    Status.Text = "Status: ???"
+    Status.TextColor3 = Color3.new(1, 1, 1)
+    Status.TextSize = 14
+    Status.FontFace = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+    Status.TextScaled = true
+    Status.TextWrapped = true
+    Status.Parent = FrameMain
+end
+
+local requestFunc = syn and syn.request or http_request or request
+
+do -- Check License
+    Status.Text = "Status: Check linence"
+    local res = requestFunc({ Url = urlwebsite.."/api/GetLicense?user="..apilogin, Method = "GET" })
+    local data = game:GetService("HttpService"):JSONDecode(res.Body)
+
+    if data.Licence == false then
+        game.Players.LocalPlayer:Kick("Access denied: Username not found or your license has expired.")
+    end
+end
+
+do -- Check storage
+    Status.Text = "Status: Check storage..."
+    local res = requestFunc({ Url = urlwebsite.."/api/GetStorageNickname?user="..apilogin, Method = "GET" })
+    local data = game:GetService("HttpService"):JSONDecode(res.Body)
+
+    if data.storage == StorageAccount then
+        local test = nil
+    else
+        game.Players.LocalPlayer:Kick("Access denied: Nickname does not match your profile or no nickname has been set")
+    end
+end
+
+do -- Dehash
+    Status.Text = "Status: Dehash api..."
+    local dehash = function()
+        local function rename(remotename,hashedremote)
+            hashedremote.Name = remotename
+        end
+        
+        table.foreach(getupvalue(require(game:GetService("ReplicatedStorage").ClientModules.Core.RouterClient.RouterClient).init,7),rename)
+    end
+
+    dehash()
+end
+
+do  -- PlayButton
+    local Players = game:GetService("Players")
+    local Player = Players.LocalPlayer
+    local PlayerGui = Player:WaitForChild("PlayerGui")
+
+    local function FireSig(button)
+        if not button then return end
+        pcall(function()
+            for _, connection in ipairs(getconnections(button.MouseButton1Down)) do
+                connection:Fire()
+            end
+            task.wait(0.2)
+            for _, connection in ipairs(getconnections(button.MouseButton1Up)) do
+                connection:Fire()
+            end
+            task.wait(0.2)
+            for _, connection in ipairs(getconnections(button.MouseButton1Click)) do
+                connection:Fire()
+            end
+        end)
+    end
+
+    local function WaitForPlayButton()
+        local maxWait = 30
+        local waited = 0
+        while waited < maxWait do
+            local newsApp = PlayerGui:FindFirstChild("NewsApp")
+            if newsApp and newsApp:FindFirstChild("EnclosingFrame") and newsApp.EnclosingFrame:FindFirstChild("MainFrame") then
+                local playButton = newsApp.EnclosingFrame.MainFrame:FindFirstChild("Buttons")
+                    and newsApp.EnclosingFrame.MainFrame.Buttons:FindFirstChild("PlayButton")
+                if playButton then
+                    return playButton
+                end
+            end
+            waited += 0.5
+            task.wait(0.5)
+        end
+        return nil
+    end
+
+    local playButton = WaitForPlayButton()
+    if playButton then
+        FireSig(playButton)
+    end
+
+    task.wait(10)
+
+    FireSig(game:GetService("Players").LocalPlayer.PlayerGui.DialogApp.Dialog.ExitButton)
+end
+
+Status.Text = "Status: Wait loading"
+
+task.wait(20)
+
+Status.Text = "Status: Working"
+
+-- function
+
+function GetFilteredPets(maxCount)
+    local clientData = require(game.ReplicatedStorage.ClientModules.Core.ClientData)
+    local playerData = clientData.get_data()[tostring(game.Players.LocalPlayer)]
+    local filteredPets = {}
+
+    for _, pet in pairs(playerData.inventory.pets or {}) do
+        if #filteredPets >= maxCount then
+            break
+        end
+
+        for _, target in ipairs(petName) do
+            if pet.kind == target then
+                table.insert(filteredPets, pet)
+                break
+            end
+        end
+    end
+
+    return filteredPets
+end
+
+local KindDB = game:GetService("ReplicatedStorage"):WaitForChild("ClientDB"):WaitForChild("Inventory"):WaitForChild("KindDB")
+local kindData = require(KindDB)
+
+local function getPetInfo(petName)
+    for _, itemData in pairs(kindData) do
+        if string.lower(itemData.name) == string.lower(petName) then
+            return {
+                kind = itemData.kind or "unknown",
+                rarity = itemData.rarity or "unknown",
+                imgID = (itemData.image and string.gsub(itemData.image, "rbxassetid://", "")) or "unknown"
+            }
+        end
+    end
+    return {kind = "unknown", rarity = "unknown", imgID = "unknown"}
+end
+
+petName = {}
+local CheckRarity = nil
+
+for _, pet in ipairs(petByName) do
+    local info = getPetInfo(pet)
+
+    if not CheckRarity then
+        CheckRarity = info.rarity
+    end
+
+    if info.rarity ~= CheckRarity then
+        game.Players.LocalPlayer:Kick("Access denied: All selected pets must be of the same rarity")
+    end
+
+    table.insert(petName, info.kind)
+end
+
+task.spawn(function()
+    local vu = game:GetService("VirtualUser")
+    while true do
+        task.wait(300)
+        vu:CaptureController()
+        vu:ClickButton2(Vector2.new())
+        workspace.CurrentCamera.CFrame = workspace.CurrentCamera.CFrame * CFrame.Angles(0, math.rad(math.random(-2,2)), 0)
+    end
+end)
+
+function GetCountPets()
+    local clientData = require(game.ReplicatedStorage.ClientModules.Core.ClientData)
+    local playerData = clientData.get_data()[tostring(game.Players.LocalPlayer)]
+
+    local pet_count = 0
+    for _, target in ipairs(petName) do
+        for _, pet in pairs(playerData.inventory.pets or {}) do
+            if pet.kind == target and pet.properties.age < 6 and not pet.properties.mega_neon  then
+                pet_count += 1
+            end
+        end
+    end
+    return pet_count
+end
+
+function AllGetCountPets()
+    local clientData = require(game.ReplicatedStorage.ClientModules.Core.ClientData)
+    local playerData = clientData.get_data()[tostring(game.Players.LocalPlayer)]
+
+    local pet_count = 0
+    for _, target in ipairs(petName) do
+        for _, pet in pairs(playerData.inventory.pets or {}) do
+            if pet.kind == target then
+                pet_count += 1
+            end
+        end
+    end
+    return pet_count
+end
+
+local pet_count = GetCountPets()
+
+local clientData = require(game.ReplicatedStorage.ClientModules.Core.ClientData)
+local playerData = clientData.get_data()[tostring(game.Players.LocalPlayer)]
+local pet_age_potion = 0
+for _, item in pairs(playerData.inventory.food or {}) do
+    if item.kind == "pet_age_potion" then
+        pet_age_potion += 1
+    end
+end
+
+local pet_count = AllGetCountPets()
+
+if pet_count == 0 and pet_age_potion == 0 then
+    Status.Text = "Status: No pets and no potion"
+    task.wait(600000)
+end
+
+--
+
+if AutoFuse then
+    task.spawn(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Rano194/V2/refs/heads/main/FusionMake"))()
+    end)
+end
+
+if AgePets then
+    Complete = false
+
+    task.spawn(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Rano194/V2/refs/heads/main/AutoFeedMassive"))()
+    end)
+
+    while true do
+        task.wait(5)
+        Status.Text = "Status: Age pets"
+        if Complete == true then
+            break
+            Status.Text = "Status: wait"
+        end
+    end
+end
+
+-- Back Trade
+
+local res = requestFunc({ Url = urlwebsite.."/api/SendInfoAccounts?Name="..game.Players.LocalPlayer.Name.."&NeedPets=0&Status=Ready&user="..apilogin, Method = "GET" })
+
+while true do
+    Status.Text = "Status: Wait trade"
+    local res = requestFunc({ Url = urlwebsite.."/api/GetAccountTrade?user="..apilogin, Method = "GET" })
+    local data = game:GetService("HttpService"):JSONDecode(res.Body)
+
+    local pet_count = AllGetCountPets()
+    if pet_count == 0 then
+        break
+    end
+
+    if data.message then continue end
+    local nickname = data.TradeAccount
+
+    if nickname ~= game.Players.LocalPlayer.Name then continue end
+
+    local args = {
+        game:GetService("Players"):WaitForChild(StorageAccount)
+    }
+    game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("TradeAPI/SendTradeRequest"):FireServer(unpack(args))
+    if game:GetService("Players").LocalPlayer.PlayerGui.TradeApp.Frame.Visible == false then continue end
+
+    local pets = GetFilteredPets(18)
+    for i, pet in ipairs(pets) do
+        local args = {pet.unique}
+        game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("TradeAPI/AddItemToOffer"):FireServer(unpack(args))
+        task.wait()
+    end
+
+    while true do
+        task.wait(0.5)
+        game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("TradeAPI/AcceptNegotiation"):FireServer()
+        game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("TradeAPI/ConfirmTrade"):FireServer()
+        if game:GetService("Players").LocalPlayer.PlayerGui.TradeApp.Frame.Visible == false then
+            task.wait(7)
+            break
+        end
+    end
+end
+
+local res = requestFunc({ Url = urlwebsite.."/api/DelAccount?Name="..game.Players.LocalPlayer.Name.."&user="..apilogin, Method = "GET" })
+
+local res = requestFunc({ Url = urlwebsite.."/api/GetAccounts?user="..apilogin, Method = "GET" })
+local data = game:GetService("HttpService"):JSONDecode(res.Body)
+
+for _, account in ipairs(data) do
+    if account.Status == "Ready" then
+        local res = requestFunc({ Url = urlwebsite.."/api/SetAccountTrade?Name="..account.Nickname.."&user="..apilogin, Method = "GET" })
+        break
+    end
+end
+
+Status.Text = "Status: Compeleted"
+Status.TextColor3 = Color3.new(0.0666667, 1, 0)
